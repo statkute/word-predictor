@@ -15,8 +15,7 @@ public class DictionaryTreeTests {
     @Test
     public void heightOfWordShouldBeWordLength() {
         DictionaryTree unit = new DictionaryTree();
-        unit.insert("word");
+        unit.insert("word", 0);
         Assertions.assertEquals("word".length(), unit.height());
     }
-
 }

@@ -1,8 +1,4 @@
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.BiFunction;
 
 public class DictionaryTree {
@@ -10,6 +6,8 @@ public class DictionaryTree {
     private Map<Character, DictionaryTree> children = new LinkedHashMap<>();
     public DictionaryTree parent;
     public Boolean endOfWord = false; //Does this Node mark the end of a particular word?
+    public boolean visited;
+    public int popularity;
 
 
     /**
@@ -22,13 +20,11 @@ public class DictionaryTree {
         if (!children.containsKey(word.charAt(0))) {
             children.put(word.charAt(0), new DictionaryTree());
         }
-//        System.out.println("word:" + word);
-//        System.out.println("word.substring(1): " + word.substring(1) + ", word.charAt(0):" + word.charAt(0));
-        System.out.print(word.charAt(0));
+
         if (word.length() > 1) {
             insertWord(word.substring(1), children.get(word.charAt(0)));
         }
-        System.out.println("");
+
         //throw new RuntimeException("DictionaryTree.insert not implemented yet");
     }
 
@@ -41,7 +37,6 @@ public class DictionaryTree {
             childTree = new DictionaryTree();
             child.children.put(word.charAt(0), childTree);
         }
-        System.out.print(" ----> " +word.charAt(0));
         if (word.length() == 1) {
             childTree.endOfWord = true;
             return;
@@ -59,7 +54,34 @@ public class DictionaryTree {
      * @param popularity the popularity of the inserted word
      */
     void insert(String word, int popularity) {
-        throw new RuntimeException("DictionaryTree.insert not implemented yet");
+        if (!children.containsKey(word.charAt(0))) {
+            children.put(word.charAt(0), new DictionaryTree());
+        }
+
+        if (word.length() > 1) {
+            insertWord(word.substring(1), children.get(word.charAt(0)), popularity);
+        } else {
+            this.popularity = popularity;
+        }
+
+    }
+
+    //Recursive method that inserts a new word into the trie tree.
+    private void insertWord(String word, DictionaryTree child, int popularity) {
+        final DictionaryTree childTree;
+        if (child.children.containsKey(word.charAt(0))) {
+            childTree = child.children.get(word.charAt(0));
+        } else {
+            childTree = new DictionaryTree();
+            child.children.put(word.charAt(0), childTree);
+        }
+        if (word.length() == 1) {
+            childTree.endOfWord = true;
+            childTree.popularity = popularity;
+            return;
+        } else {
+            insertWord(word.substring(1), childTree);
+        }
     }
 
     /**
@@ -82,9 +104,56 @@ public class DictionaryTree {
      * @return true if the specified word is stored in this tree; false otherwise
      */
     boolean contains(String word) {
-        throw new RuntimeException("DictionaryTree.contains not implemented yet");
+        boolean characterFound = false;
+        DictionaryTree child = null;
+
+        for (Map.Entry<Character, DictionaryTree> e : children.entrySet()){
+            if (e.getKey() == word.charAt(0)){
+                characterFound = true;
+                child = e.getValue();
+                break;
+            }
+        }
+
+        if (characterFound){
+            return containsHelper(word.substring(1), child);
+        }
+        else {
+            return false;
+        }
+        //throw new RuntimeException("DictionaryTree.contains not implemented yet");
     }
 
+    boolean containsHelper (String word, DictionaryTree child){
+        boolean characterFound = false;
+        DictionaryTree childTemp = null;
+
+        for (Map.Entry<Character, DictionaryTree> e : child.children.entrySet()){
+            if (e.getKey() == word.charAt(0)){
+                characterFound = true;
+                child = e.getValue();
+                break;
+            }
+        }
+
+        if (word.length() == 1){
+            if (characterFound){
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        else {
+            if (characterFound){
+                return containsHelper(word.substring(1), child);
+            }
+            else {
+                return false;
+            }
+        }
+
+    }
     /**
      * @param prefix the prefix of the word returned
      * @return a word that starts with the given prefix, or an empty optional
@@ -110,7 +179,41 @@ public class DictionaryTree {
      * not prefixes of any other word.
      */
     int numLeaves() {
-        throw new RuntimeException("DictionaryTree.numLeaves not implemented yet");
+        DictionaryTree child = null;
+        int numberOfLeaves = 0;
+        for (Map.Entry<Character, DictionaryTree> e : children.entrySet()){
+            child = e.getValue();
+            System.out.println("GOING DOWN THE NODE OF: " + e.getKey());
+            if (!child.children.isEmpty()) {
+                numberOfLeaves += (numLeavesHelper(child, numberOfLeaves));
+            }
+            else{
+                numberOfLeaves++;
+            }
+        }
+        return numberOfLeaves;
+        // throw new RuntimeException("DictionaryTree.numLeaves not implemented yet");
+    }
+
+    int numLeavesHelper(DictionaryTree child, int numberOfLeaves) {
+        DictionaryTree newChild = null;
+        for (Map.Entry<Character, DictionaryTree> e : child.children.entrySet()){
+            newChild = e.getValue();
+            System.out.println("GOING DOWN THE NODE OF: " + e.getKey());
+            System.out.println("Number of leaves before adding anything: " + numberOfLeaves);
+            if (newChild.children.isEmpty()){
+                System.out.println("LEAVE: YES");
+                numberOfLeaves++;
+            }
+            else{
+                System.out.println("LEAVE: NO");
+                int temp = (numLeavesHelper(newChild, numberOfLeaves)) - numberOfLeaves;
+                numberOfLeaves += temp;
+            }
+            System.out.println("Number of AFTER the addition by "+ e.getKey() +": " + numberOfLeaves);
+        }
+        return  numberOfLeaves;
+        //throw new RuntimeException("DictionaryTree.numLeaves not implemented yet");
     }
 
     /**
@@ -127,9 +230,9 @@ public class DictionaryTree {
         int height = -1;
 
         for (Map.Entry<Character, DictionaryTree> e : children.entrySet())
-            height = Math.max(height,e.getValue().height());
+            height = Math.max(height, e.getValue().height());
 
-        return 1+height;
+        return 1 + height;
 
         //throw new RuntimeException("DictionaryTree.height not implemented yet");
     }
@@ -152,8 +255,60 @@ public class DictionaryTree {
      * @return the longest word in this tree
      */
     String longestWord() {
-        throw new RuntimeException("DictionaryTree.longestWord not implemented yet");
+        int maxHeight = height();
+        String longestWord = "";
+        boolean foundRightBranch = false;
+        DictionaryTree longestBranch = null;
+        for (Map.Entry<Character, DictionaryTree> e : children.entrySet()) {
+            if (e.getValue().height() == maxHeight - 1) {
+                foundRightBranch = true;
+                longestBranch = e.getValue();
+                longestWord += e.getKey();
+            }
+        }
+
+        if (foundRightBranch) {
+            if (maxHeight >= 2) {
+                longestWord = longestWord(longestBranch, longestWord);
+            } else {
+                return longestWord;
+            }
+        }
+
+        return longestWord;
+        //throw new RuntimeException("DictionaryTree.longestWord not implemented yet");
     }
+
+    String longestWord(DictionaryTree longestBranch, String word) {
+        if (longestBranch.height() == 1) {
+            for (Map.Entry<Character, DictionaryTree> e : longestBranch.children.entrySet()) {
+                word += e.getKey();
+            }
+            return word;
+        }
+
+        boolean foundBranch = false;
+        DictionaryTree branchToSearch = null;
+        char letter = '\0';
+        int maxHeight = 0;
+        for (Map.Entry<Character, DictionaryTree> e : longestBranch.children.entrySet()) {
+            if (e.getValue().height() > maxHeight) {
+                maxHeight = e.getValue().height();
+                foundBranch = true;
+                branchToSearch = e.getValue();
+                letter = e.getKey();
+            }
+        }
+
+        word += letter;
+
+        if (maxHeight > 0) {
+            return longestWord(branchToSearch, word);
+        } else {
+            return word;
+        }
+    }
+
 
     /**
      * @return all words stored in this tree as a list

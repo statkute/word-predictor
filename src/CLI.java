@@ -21,7 +21,7 @@ public class CLI {
         try (BufferedReader reader = new BufferedReader(new FileReader(f))) {
             String word;
             DictionaryTree d = new DictionaryTree();
-            String [] twoWords = {"hi", "hello", "help", "bye"};
+            String [] twoWords = {"hello", "hi", "hamz", "al", "m"};
             for (String w : twoWords){
                 d.insert(w);
             }
@@ -37,8 +37,11 @@ public class CLI {
         System.out.print("Loading dictionary ... ");
         DictionaryTree d = loadWords(new File(args[0]));
         System.out.println("done");
-        System.out.println("size:" + d.size());
-        System.out.println("height:" + d.height());
+        System.out.println("size: " + d.size());
+        System.out.println("height: " + d.height());
+        System.out.println("longest word: " + d.longestWord());
+        System.out.println("contains hamz? : " + d.contains("hamz"));
+        System.out.println("number of leaves: " + d.numLeaves());
         System.out.println("Enter prefixes for prediction below.");
 
         try (BufferedReader fromUser = new BufferedReader(new InputStreamReader(System.in))) {
