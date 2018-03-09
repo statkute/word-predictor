@@ -3,6 +3,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Kelsey McKenna
@@ -20,8 +23,9 @@ public class CLI {
     static DictionaryTree loadWords(File f) throws IOException {
         try (BufferedReader reader = new BufferedReader(new FileReader(f))) {
             String word;
-            DictionaryTree d = new DictionaryTree();
-            String [] twoWords = {"hello", "hi", "hamz", "al", "m"};
+            DictionaryTree d = new DictionaryTree(Optional.empty(), Optional.empty());
+            int popularity = 0;
+            String [] twoWords = {"hello", "hi", "hamz", "al", "m", "k", "alz"};
             for (String w : twoWords){
                 d.insert(w);
             }
@@ -40,8 +44,26 @@ public class CLI {
         System.out.println("size: " + d.size());
         System.out.println("height: " + d.height());
         System.out.println("longest word: " + d.longestWord());
-        System.out.println("contains hamz? : " + d.contains("hamz"));
+        System.out.println("contains al? : " + d.contains("al"));
         System.out.println("number of leaves: " + d.numLeaves());
+        System.out.println("maximum braching: " + d.maximumBranching());
+        List<String> all = d.allWords();
+        System.out.println();
+        System.out.println("Number of words in the arraylist = " + all.size());
+        for (String w : all){
+            System.out.print(w + ", ");
+        }
+        System.out.println("");
+
+        d.remove("al");
+        System.out.println("Just removed the word al");
+        List<String> afterRemoval = d.allWords();
+        System.out.println();
+        System.out.println("Number of words in the arraylist after removal= " + afterRemoval.size());
+        for (String w : afterRemoval){
+            System.out.print(w + ", ");
+        }
+        System.out.println();
         System.out.println("Enter prefixes for prediction below.");
 
         try (BufferedReader fromUser = new BufferedReader(new InputStreamReader(System.in))) {
