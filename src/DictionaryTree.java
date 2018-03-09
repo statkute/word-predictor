@@ -1,14 +1,16 @@
 import sun.invoke.empty.Empty;
 
 import javax.sound.midi.SysexMessage;
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 import java.util.function.BiFunction;
 
 public class DictionaryTree {
 
     private Map<Character, DictionaryTree> children = new LinkedHashMap<>();
     public DictionaryTree parent;
-    public Optional <String> fullWord; //Does this Node mark the end of a particular word?
+    public Optional <String> fullWord;
     public Optional <Integer> popularity;
 
 
@@ -18,7 +20,8 @@ public class DictionaryTree {
     }
 
     public DictionaryTree () {
-
+        this.fullWord = Optional.empty();
+        this.popularity = Optional.empty();
     }
 
     /**
@@ -60,7 +63,12 @@ public class DictionaryTree {
             }
         }
         else {
-            insertWord(word.substring(1), children.get(word.charAt(0)), Optional.empty(), word);
+            if (word.length() == 1){
+                children.put(word.charAt(0), new DictionaryTree(Optional.of(word), Optional.of(popularity)));
+            }
+            else {
+                insertWord(word.substring(1), children.get(word.charAt(0)), Optional.of(popularity), word);
+            }
         }
     }
 
@@ -71,10 +79,10 @@ public class DictionaryTree {
             childTree = child.children.get(word.charAt(0));
         } else {
             childTree = new DictionaryTree();
-            if (word.length() > 1) {
-                childTree.fullWord = Optional.empty();
-                childTree.popularity = Optional.empty();
-            }
+//            if (word.length() > 1) {
+//                childTree.fullWord = Optional.empty();
+//                childTree.popularity = Optional.empty();
+//            }
             child.children.put(word.charAt(0), childTree);
         }
         if (word.length() == 1) {
@@ -100,19 +108,26 @@ public class DictionaryTree {
             return false;
         }
         else{
-            List <String> wordsInSameBranch = new ArrayList<String>();
             for (Map.Entry<Character, DictionaryTree> e : children.entrySet()){
                 if (e.getKey().equals(word.charAt(0))){
-                    wordsInSameBranch = e.getValue().allWords();
-                    wordsInSameBranch.remove(word);
+                    List<Word> allPredictions = e.getValue().allWords(new ArrayList<Word>());
+                    int temp = 0;
+                    for (int i = 0; i < allPredictions.size(); i ++){
+                        if (allPredictions.get(i).getWord().equals(word)){
+                            temp = i;
+                        }
+                    }
+                    allPredictions.remove(temp);
+
+                    for (Word w : allPredictions){
+                        insert(w.getWord(), w.getPopularity());
+                    }
+
                     children.remove(e.getKey());
                     break;
                 }
             }
 
-            for (String s : wordsInSameBranch){
-                insert(s);
-            }
         }
         return true;
 //        throw new RuntimeException("DictionaryTree.remove not implemented yet");
@@ -188,9 +203,19 @@ public class DictionaryTree {
         if (!contains(prefix)){
             return prediction;
         }else {
-            List<String> predictionInList = predict(prefix,1);
-            if (predictionInList.size() == 1){
-                prediction = Optional.of(predictionInList.get(0));
+            DictionaryTree predictionTree = predictHelper(prefix);
+            List<Word> allPredictions = predictionTree.allWords(new ArrayList<Word>());
+
+            String tempWord = allPredictions.get(0).getWord();;
+            int tempPopularity = allPredictions.get(0).getPopularity();
+            for (int i = 1; i < allPredictions.size(); i++){
+                if (tempPopularity > allPredictions.get(i).getPopularity()){
+                    tempPopularity = allPredictions.get(i).getPopularity();
+                    tempWord = allPredictions.get(i).getWord();
+                }
+            }
+            if (allPredictions.size() >= 1){
+                prediction = Optional.of(tempWord);
             }
             return prediction;
         }
@@ -204,9 +229,48 @@ public class DictionaryTree {
      * @return the (at most) n most popular words with the specified prefix
      */
     List<String> predict(String prefix, int n) {
-        throw new RuntimeException("DictionaryTree.predict not implemented yet");
+        List<String> prediction = new ArrayList<String>();
+        if (!contains(prefix)){
+            return prediction;
+        }else {
+            DictionaryTree predictionTree = predictHelper(prefix);
+            System.out.println(predictionTree.children);
+            List<Word> allPredictions = new ArrayList<Word>();
+            allPredictions = predictionTree.allWords(allPredictions);
+            System.out.println(allPredictions.size());
+            int wordsLeft = n;
+
+            while (wordsLeft > 1){
+                String tempWord = allPredictions.get(0).getWord();;
+                int tempPopularity = allPredictions.get(0).getPopularity();
+
+                for (int i = 1; i < allPredictions.size(); i++){
+                    if (tempPopularity > allPredictions.get(i).getPopularity()){
+                        tempPopularity = allPredictions.get(i).getPopularity();
+                        tempWord = allPredictions.get(i).getWord();
+                    }
+                }
+                prediction.remove(tempWord);
+                --wordsLeft;
+            }
+
+            return prediction;
+        }
     }
 
+    DictionaryTree predictHelper(String prefix) {
+        for (Map.Entry<Character, DictionaryTree> e : children.entrySet()){
+            if (e.getKey() == prefix.charAt(0)){
+                if (prefix.length() == 1){
+                    return e.getValue();
+                }
+                else{
+                    e.getValue().predictHelper(prefix.substring(1));
+                }
+            }
+        }
+        return new DictionaryTree();
+    }
 
     /**
      * @return the number of leaves in this tree, i.e. the number of words which are
@@ -359,13 +423,21 @@ public class DictionaryTree {
      * @return all words stored in this tree as a list
      */
     List<String> allWords() {
-        return  allWords(new ArrayList<String>());
+        ArrayList<Word> wordInfoList= new ArrayList<Word>();
+        List<Word> allWordInfo = allWords(wordInfoList);
+
+        List <String> wordsOnly = new ArrayList<String>();
+
+        for (Word w : allWordInfo){
+            wordsOnly.add(w.getWord());
+        }
+        return  wordsOnly;
     }
 
 
-    List<String> allWords(List<String> allWordList) {
+    List<Word> allWords(List<Word> allWordList) {
         if (fullWord.isPresent()){
-            allWordList.add((fullWord).get());
+            allWordList.add(new Word(fullWord.get(), popularity.get()));
         }
         for (Map.Entry<Character, DictionaryTree> e : children.entrySet()){
             e.getValue().allWords(allWordList);
