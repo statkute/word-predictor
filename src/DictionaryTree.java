@@ -203,19 +203,13 @@ public class DictionaryTree {
         if (!contains(prefix)){
             return prediction;
         }else {
-            DictionaryTree predictionTree = predictHelper(prefix);
-            List<Word> allPredictions = predictionTree.allWords(new ArrayList<Word>());
-
-            String tempWord = allPredictions.get(0).getWord();;
-            int tempPopularity = allPredictions.get(0).getPopularity();
-            for (int i = 1; i < allPredictions.size(); i++){
-                if (tempPopularity > allPredictions.get(i).getPopularity()){
-                    tempPopularity = allPredictions.get(i).getPopularity();
-                    tempWord = allPredictions.get(i).getWord();
-                }
-            }
-            if (allPredictions.size() >= 1){
-                prediction = Optional.of(tempWord);
+            List<Word> allPredictions = new ArrayList<Word>();
+            allPredictions = this.predictHelper(prefix, allPredictions);
+            Collections.sort(allPredictions, new Word());
+            Word finalPrediction = new Word();
+            if (!allPredictions.isEmpty()){
+                finalPrediction = allPredictions.get(0);
+                prediction = Optional.of(finalPrediction.getWord());
             }
             return prediction;
         }
@@ -233,43 +227,37 @@ public class DictionaryTree {
         if (!contains(prefix)){
             return prediction;
         }else {
-            DictionaryTree predictionTree = predictHelper(prefix);
-            System.out.println(predictionTree.children);
             List<Word> allPredictions = new ArrayList<Word>();
-            allPredictions = predictionTree.allWords(allPredictions);
-            System.out.println(allPredictions.size());
-            int wordsLeft = n;
+            allPredictions = this.predictHelper(prefix, allPredictions);
+            Collections.sort(allPredictions, new Word());
 
-            while (wordsLeft > 1){
-                String tempWord = allPredictions.get(0).getWord();;
-                int tempPopularity = allPredictions.get(0).getPopularity();
-
-                for (int i = 1; i < allPredictions.size(); i++){
-                    if (tempPopularity > allPredictions.get(i).getPopularity()){
-                        tempPopularity = allPredictions.get(i).getPopularity();
-                        tempWord = allPredictions.get(i).getWord();
-                    }
+            List<String> sortedPredictions = new ArrayList<String>();
+            int temp = 0;
+            for (Word w : allPredictions){
+                sortedPredictions.add(w.getWord());
+                if (temp == n-1){
+                    break;
                 }
-                prediction.remove(tempWord);
-                --wordsLeft;
+                temp++;
             }
 
-            return prediction;
+            return sortedPredictions;
         }
     }
 
-    DictionaryTree predictHelper(String prefix) {
+    List<Word> predictHelper(String prefix, List<Word> allWords) {
         for (Map.Entry<Character, DictionaryTree> e : children.entrySet()){
             if (e.getKey() == prefix.charAt(0)){
                 if (prefix.length() == 1){
-                    return e.getValue();
+                    allWords = e.getValue().allWords(allWords);
+                    return allWords;
                 }
                 else{
-                    e.getValue().predictHelper(prefix.substring(1));
+                    e.getValue().predictHelper(prefix.substring(1), allWords);
                 }
             }
         }
-        return new DictionaryTree();
+        return allWords;
     }
 
     /**

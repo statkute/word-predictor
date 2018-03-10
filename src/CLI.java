@@ -26,10 +26,10 @@ public class CLI {
             DictionaryTree d = new DictionaryTree(Optional.empty(), Optional.empty());
             int popularity = 0;
 //            String [] twoWords = {"hello", "hi", "hamz", "al", "m", "k", "kz"};
-////            for (String w : twoWords){
-////                popularity = popularity+1;
-////                d.insert(w, popularity);
-////            }
+//            for (String w : twoWords){
+//                popularity = popularity+1;
+//                d.insert(w, popularity);
+//            }
             while ((word = reader.readLine()) != null) {
                 popularity = popularity+1;
                 d.insert(word,popularity);
@@ -70,9 +70,11 @@ public class CLI {
 
         System.out.println("Predictions for ph: ");
         List<String> predictions = d.predict("ph", 5);
-        for (String w : predictions){
-            System.out.print(w + ", ");
+        for (String s: predictions){
+            System.out.print(s + ", ");
         }
+
+        System.out.println();
 
         System.out.println("Enter prefixes for prediction below.");
 
